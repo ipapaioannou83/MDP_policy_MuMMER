@@ -165,4 +165,24 @@ public class mState implements MutableState{
     public String toString() {
         return StateUtilities.stateToString(this);
     }
+
+    public static State getInitialState(){
+        mState s = new mState();
+
+        s.distance = 1;
+        s.mode = false;
+        s.usrEngaged = true;
+        s.usrTermination = false;
+        s.usrEngChat = false;
+        s.lowConf = false;
+        s.tskCompleted = false;
+        s.ctxTask = "";
+        s.timeout = false;
+        s.tskFilled = false;
+        s.turnTaking = false;
+        s.prevAct = 0;
+        s.bye = false;
+
+        return s;
+    }
 }

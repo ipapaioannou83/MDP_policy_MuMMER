@@ -51,7 +51,7 @@ public class mDomain implements DomainGenerator{
 
 
     @Override
-    public Domain generateDomain() {
+    public SADomain generateDomain() {
         SADomain domain = new SADomain();
         domain.addActionTypes(
                 new UniversalActionType(TASKCONSUME),
@@ -69,7 +69,7 @@ public class mDomain implements DomainGenerator{
         TerminalFunc tf = new TerminalFunc();
 
         domain.setModel(new FactoredModel(model, rf, tf));
-        return null;
+        return domain;
     }
 
     protected class WorldStateModel implements SampleStateModel{
