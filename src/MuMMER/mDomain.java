@@ -3,42 +3,19 @@ package MuMMER; /**
  */
 
 import burlap.mdp.auxiliary.DomainGenerator;
-import burlap.mdp.core.TerminalFunction;
 import burlap.mdp.core.action.Action;
 import burlap.mdp.core.action.UniversalActionType;
 import burlap.mdp.core.state.State;
 import burlap.mdp.singleagent.SADomain;
 import burlap.mdp.singleagent.model.FactoredModel;
-import burlap.mdp.singleagent.model.RewardFunction;
 import burlap.mdp.singleagent.model.statemodel.SampleStateModel;
 
 import java.util.Random;
 
-public class mDomain implements DomainGenerator{
-    //State representation
-    public static final String MODE = "mode"; //0 = task, 1 = chat
-    public static final String DISTANCE = "distance";
-    public static final String USRENGCHAT = "user engaged chat";
-    public static final String TIMEOUT= "timeout";
-    public static final String TASKFILLED= "task filled";
-    public static final String TASKCOMPLETED= "task completed";
-    public static final String USRENGAGED= "user engaged";
-    public static final String CTXTASK= "task context";
-    public static final String SGOODBYE = "goodbye";
-    public static final String USRTERMINATION= "forced user termination";
-    public static final String TURNTAKING= "turn taking"; //0 = agent, 1 = user
-    public static final String LOWCONF= "low confidence";
-    public static final String PREVACT= "previous action";
+public class mDomain implements DomainGenerator, iAttributes, iActions{
 
-    //Actions
-    public static final String TASKCONSUME = "taskConsume";
-    public static final String GREET = "Greet";
-    public static final String AGOODBYE = "Goodbye";
-    public static final String CHAT = "Chat";
-    public static final String GIVEDIR = "giveDirections";
-    public static final String WAIT = "wait";
-    public static final String CONFIRM = "confirm";
-    public static final String REQTASK = "requestTask";
+
+
 
 
     @Override
@@ -50,6 +27,7 @@ public class mDomain implements DomainGenerator{
                 new UniversalActionType(AGOODBYE),
                 new UniversalActionType(CHAT),
                 new UniversalActionType(GIVEDIR),
+                new UniversalActionType(REQNAME),
                 new UniversalActionType(WAIT),
                 new UniversalActionType(CONFIRM),
                 new UniversalActionType(REQTASK));
@@ -97,7 +75,6 @@ public class mDomain implements DomainGenerator{
         public State sample(State state, Action action) {
             String[] uTask;
 
-
             //TODO: inquiry: make sure the action selection is already been done before reaching this point.
             state = state.copy();
 
@@ -107,6 +84,7 @@ public class mDomain implements DomainGenerator{
             //Get the action ID of the selected action
             int actionID = getActionID(action);
 
+            //If it was the agent's turn, check user's response
             if (!s.turnTaking){
                 if(actionID == 2 && s.prevAct != 0){
                     s.usrEngaged = false;
@@ -141,10 +119,10 @@ public class mDomain implements DomainGenerator{
                     }
                 }
 
-                if (actionID == 4)
-                    s.mode = true;
-                else
-                    s.mode = false;
+//                if (actionID == 4)
+//                    s.mode = true;
+//                else
+//                    s.mode = false;
 
                 if (actionID == 7 && s.lowConf)
                     s.lowConf = false;
@@ -251,18 +229,22 @@ public class mDomain implements DomainGenerator{
                 }
             }
 
-            /* If agent already in chat mode, user have 50% probability to continue the chat
-            and 50% to take some other action */
-            if (s.mode) {
+            /* If user was chatting during his previous turn (meaning he got a response that the agent could not comply),
+             * there is a 50% probability to give a task and 50% to say bye and leave */
+            if (s.usrEngChat) {
                 double r = Math.random();
                 if (r < .5){
-                    result[0] = task[task.length - 1]; //Take uChat action (must always be the last in the enum)
-                    result[1] = "";
+                    result[0] = task[0];
+                    random = new Random();
+                    iCtx = random.nextInt(ctx.length);
+                    result[1] = ctx[iCtx];
 
                     return result;
                 } else {
-                    random = new Random();
-                    index = random.nextInt(task.length - 1); // select from all actions except uChat
+                    result[0] = "uGoodbye";
+                    result[1] = "";
+
+                    return result;
                 }
             }
 
@@ -292,45 +274,7 @@ public class mDomain implements DomainGenerator{
         }
     }
 
-    public static class RewardFunc implements RewardFunction {
-    /*
-    For each turn the user is engaged: +1
-    Completing a task: +10
-    Greeting as appropriate: +100
-    User leaves earlier: -100
-    User leaves normally: +100
-     */
 
-        @Override
-        public double reward(State state, Action groundedAction, State state1) {
-            int reward;
 
-            mState sprime = (mState) state1;
-            mState s = (mState) state;
-            if (sprime.tskCompleted)
-                reward = 10;
-            else if (sprime.bye)
-                reward = 100;
-            else if (sprime.usrTermination)
-                reward = -100;
-            else if (groundedAction.actionName().equals(GREET) && s.prevAct == 0){
-                reward = 100;}
-            else
-                reward = 1;
 
-            return reward;
-        }
-    }
-
-    public static class TerminalFunc implements TerminalFunction {
-
-        @Override
-        public boolean isTerminal(State state) {
-            mState s = (mState) state;
-            if (!s.usrEngaged) {
-                return true;
-            }
-            return false;
-        }
-    }
 }
