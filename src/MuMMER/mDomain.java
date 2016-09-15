@@ -1,25 +1,17 @@
 package MuMMER; /**
  * Created by elveleg on 9/9/2016.
  */
+
 import burlap.mdp.auxiliary.DomainGenerator;
-import burlap.mdp.core.Domain;
-import burlap.mdp.core.StateTransitionProb;
 import burlap.mdp.core.TerminalFunction;
 import burlap.mdp.core.action.Action;
 import burlap.mdp.core.action.UniversalActionType;
 import burlap.mdp.core.state.State;
 import burlap.mdp.singleagent.SADomain;
-import burlap.mdp.singleagent.environment.SimulatedEnvironment;
 import burlap.mdp.singleagent.model.FactoredModel;
 import burlap.mdp.singleagent.model.RewardFunction;
-import burlap.mdp.singleagent.model.statemodel.FullStateModel;
 import burlap.mdp.singleagent.model.statemodel.SampleStateModel;
-import burlap.shell.visual.VisualExplorer;
-import burlap.visualizer.StatePainter;
-import burlap.visualizer.StateRenderLayer;
-import burlap.visualizer.Visualizer;
 
-import javax.management.Attribute;
 import java.util.Random;
 
 public class mDomain implements DomainGenerator{
@@ -44,7 +36,6 @@ public class mDomain implements DomainGenerator{
     public static final String AGOODBYE = "Goodbye";
     public static final String CHAT = "Chat";
     public static final String GIVEDIR = "giveDirections";
-    public static final String REQNAME = "requestName";
     public static final String WAIT = "wait";
     public static final String CONFIRM = "confirm";
     public static final String REQTASK = "requestTask";
@@ -59,7 +50,6 @@ public class mDomain implements DomainGenerator{
                 new UniversalActionType(AGOODBYE),
                 new UniversalActionType(CHAT),
                 new UniversalActionType(GIVEDIR),
-                new UniversalActionType(REQNAME),
                 new UniversalActionType(WAIT),
                 new UniversalActionType(CONFIRM),
                 new UniversalActionType(REQTASK));
@@ -91,13 +81,11 @@ public class mDomain implements DomainGenerator{
                     break;
                 case GIVEDIR:   id = 5;
                     break;
-                case REQNAME:   id = 6;
+                case WAIT:  id = 6;
                     break;
-                case WAIT:  id = 7;
+                case CONFIRM:   id = 7;
                     break;
-                case CONFIRM:   id = 8;
-                    break;
-                case REQTASK:   id = 9;
+                case REQTASK:   id = 8;
                     break;
                 default:    id = -1;
                     break;
