@@ -46,6 +46,7 @@ public class MDP_trainer {
 
             env.resetEnvironment();
         }
+        //Export policy to file
         la.writeQTable("exportedPolicy.txt");
     }
 
