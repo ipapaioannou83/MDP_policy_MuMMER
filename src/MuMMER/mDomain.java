@@ -109,7 +109,6 @@ public class mDomain implements DomainGenerator{
         public State sample(State state, Action action) {
             String[] uTask;
 
-
             //TODO: inquiry: make sure the action selection is already been done before reaching this point.
             state = state.copy();
 
@@ -119,6 +118,7 @@ public class mDomain implements DomainGenerator{
             //Get the action ID of the selected action
             int actionID = getActionID(action);
 
+            //If it was the agent's turn, check user's response
             if (!s.turnTaking){
                 if(actionID == 2 && s.prevAct != 0){
                     s.usrEngaged = false;
@@ -153,10 +153,10 @@ public class mDomain implements DomainGenerator{
                     }
                 }
 
-                if (actionID == 4)
-                    s.mode = true;
-                else
-                    s.mode = false;
+//                if (actionID == 4)
+//                    s.mode = true;
+//                else
+//                    s.mode = false;
 
                 if (actionID == 7 && s.lowConf)
                     s.lowConf = false;
@@ -263,18 +263,22 @@ public class mDomain implements DomainGenerator{
                 }
             }
 
-            /* If agent already in chat mode, user have 50% probability to continue the chat
-            and 50% to take some other action */
-            if (s.mode) {
+            /* If user was chatting during his previous turn (meaning he got a response that the agent could not comply),
+             * there is a 50% probability to give a task and 50% to say bye and leave */
+            if (s.usrEngChat) {
                 double r = Math.random();
                 if (r < .5){
-                    result[0] = task[task.length - 1]; //Take uChat action (must always be the last in the enum)
-                    result[1] = "";
+                    result[0] = task[0];
+                    random = new Random();
+                    iCtx = random.nextInt(ctx.length);
+                    result[1] = ctx[iCtx];
 
                     return result;
                 } else {
-                    random = new Random();
-                    index = random.nextInt(task.length - 1); // select from all actions except uChat
+                    result[0] = "uGoodbye";
+                    result[1] = "";
+
+                    return result;
                 }
             }
 

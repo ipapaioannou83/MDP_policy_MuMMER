@@ -2,7 +2,11 @@ package MuMMER;
 
 import burlap.behavior.policy.EpsilonGreedy;
 import burlap.behavior.singleagent.Episode;
+import burlap.behavior.singleagent.auxiliary.performance.LearningAlgorithmExperimenter;
+import burlap.behavior.singleagent.auxiliary.performance.PerformanceMetric;
+import burlap.behavior.singleagent.auxiliary.performance.TrialMode;
 import burlap.behavior.singleagent.learning.LearningAgent;
+import burlap.behavior.singleagent.learning.LearningAgentFactory;
 import burlap.behavior.singleagent.learning.tdmethods.SarsaLam;
 import burlap.mdp.core.Domain;
 import burlap.mdp.core.state.State;
@@ -46,8 +50,12 @@ public class MDP_trainer {
 
             env.resetEnvironment();
         }
+
+
         //Export policy to file
-        la.writeQTable("exportedPolicy.txt");
+        //la.writeQTable("exportedPolicy.txt");
+
+        generatePlots(domain, env);
     }
 
     public String printStateTransision (State state, String action){
@@ -71,6 +79,30 @@ public class MDP_trainer {
                 String.valueOf(s.prevAct)) + "\n";
 
         return result;
+    }
+
+    public static void generatePlots(Domain domain, SimulatedEnvironment env){
+
+        LearningAgentFactory sarsaLearningFactory = new LearningAgentFactory() {
+            @Override
+            public String getAgentName() {
+                return "SARSA";
+            }
+
+            @Override
+            public LearningAgent generateAgent() {
+                return new SarsaLam((SADomain) domain, discount, new SimpleHashableStateFactory(), 0.0, learning_rate, lamda);
+            }
+        };
+
+
+        LearningAlgorithmExperimenter lAlgorithm = new LearningAlgorithmExperimenter(env, 100, 1500, sarsaLearningFactory);
+        lAlgorithm.setUpPlottingConfiguration(800, 300, 2, 1000,
+                TrialMode.MOST_RECENT_AND_AVERAGE,
+                PerformanceMetric.CUMULATIVE_STEPS_PER_EPISODE,
+                PerformanceMetric.AVERAGE_EPISODE_REWARD);
+        lAlgorithm.startExperiment();
+        //lAlgorithm.writeStepAndEpisodeDataToCSV("expData");
     }
 
     public static void main(String [] args){
