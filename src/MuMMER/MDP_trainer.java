@@ -96,7 +96,7 @@ public class MDP_trainer {
         };
 
 
-        LearningAlgorithmExperimenter lAlgorithm = new LearningAlgorithmExperimenter(env, 100, 1500, sarsaLearningFactory);
+        LearningAlgorithmExperimenter lAlgorithm = new LearningAlgorithmExperimenter(env, 100, 3000, sarsaLearningFactory);
         lAlgorithm.setUpPlottingConfiguration(800, 300, 2, 1000,
                 TrialMode.MOST_RECENT_AND_AVERAGE,
                 PerformanceMetric.CUMULATIVE_STEPS_PER_EPISODE,

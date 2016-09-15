@@ -54,12 +54,11 @@ public class mDomain implements DomainGenerator{
     public SADomain generateDomain() {
         SADomain domain = new SADomain();
         domain.addActionTypes(
-                new UniversalActionType(TASKCONSUME),
+                //new UniversalActionType(TASKCONSUME),
                 new UniversalActionType(GREET),
                 new UniversalActionType(AGOODBYE),
                 new UniversalActionType(CHAT),
-                new UniversalActionType(GIVEDIR),
-                new UniversalActionType(REQNAME),
+                //new UniversalActionType(GIVEDIR),
                 new UniversalActionType(WAIT),
                 new UniversalActionType(CONFIRM),
                 new UniversalActionType(REQTASK));
@@ -91,13 +90,11 @@ public class mDomain implements DomainGenerator{
                     break;
                 case GIVEDIR:   id = 5;
                     break;
-                case REQNAME:   id = 6;
+                case WAIT:  id = 6;
                     break;
-                case WAIT:  id = 7;
+                case CONFIRM:   id = 7;
                     break;
-                case CONFIRM:   id = 8;
-                    break;
-                case REQTASK:   id = 9;
+                case REQTASK:   id = 8;
                     break;
                 default:    id = -1;
                     break;
