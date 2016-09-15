@@ -83,7 +83,7 @@ public class MDP_trainer {
         LearningAgentFactory sarsaLearningFactory = new LearningAgentFactory() {
             @Override
             public String getAgentName() {
-                return "SARSA";
+                return "Hybrid";
             }
 
             @Override
