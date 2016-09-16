@@ -119,10 +119,10 @@ public class mDomain implements DomainGenerator, iAttributes, iActions{
                     }
                 }
 
-//                if (actionID == 4)
-//                    s.mode = true;
-//                else
-//                    s.mode = false;
+                if (actionID == 4)
+                    s.mode = true;
+                else
+                    s.mode = false;
 
                 if (actionID == 7 && s.lowConf)
                     s.lowConf = false;
