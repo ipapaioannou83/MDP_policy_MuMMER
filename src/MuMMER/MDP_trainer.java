@@ -85,7 +85,7 @@ public class MDP_trainer {
         LearningAgentFactory sarsaLearningFactory = new LearningAgentFactory() {
             @Override
             public String getAgentName() {
-                return "Chat only";
+                return "Hybrid";
             }
 
             @Override

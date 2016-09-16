@@ -233,18 +233,30 @@ public class mDomain implements DomainGenerator, iAttributes, iActions{
              * there is a 50% probability to give a task and 50% to say bye and leave */
             if (s.usrEngChat) {
                 double r = Math.random();
-                if (r < .5){
-                    result[0] = task[0];
-                    random = new Random();
-                    iCtx = random.nextInt(ctx.length);
-                    result[1] = ctx[iCtx];
+                if (!s.mode){
+                    if (r < .5){
+                        result[0] = task[0];
+                        random = new Random();
+                        iCtx = random.nextInt(ctx.length);
+                        result[1] = ctx[iCtx];
 
-                    return result;
-                } else {
-                    result[0] = "uGoodbye";
-                    result[1] = "";
+                        return result;
+                    } else {
+                        result[0] = "uGoodbye";
+                        result[1] = "";
 
-                    return result;
+                        return result;
+                    }
+                }else{ //else there is a 80% probability for the user to give a new task.
+                    r = Math.random();
+                    if (r < .8){
+                        result[0] = task[0];
+                        random = new Random();
+                        iCtx = random.nextInt(ctx.length);
+                        result[1] = ctx[iCtx];
+
+                        return result;
+                    }
                 }
             }
 
