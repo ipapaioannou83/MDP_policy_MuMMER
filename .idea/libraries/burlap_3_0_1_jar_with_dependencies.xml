@@ -2,6 +2,7 @@
   <library name="burlap-3.0.1-jar-with-dependencies">
     <CLASSES>
       <root url="jar://$PROJECT_DIR$/src/burlap-3.0.1-jar-with-dependencies.jar!/" />
+      <root url="jar://$PROJECT_DIR$/src/gson-2.7.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />

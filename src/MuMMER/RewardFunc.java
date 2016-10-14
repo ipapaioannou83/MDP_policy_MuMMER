@@ -24,14 +24,14 @@ public class RewardFunc implements RewardFunction, iActions {
         mState s = (mState) state;
         if (sprime.tskCompleted)
             reward = 10;
-        else if (sprime.bye)
-            reward = 100;
         else if (sprime.usrTermination)
             reward = -100;
-        else if (groundedAction.actionName().equals(GREET) && s.prevAct == 0){
-            reward = 100;}
+//        else if (groundedAction.actionName().equals(GREET) && s.prevAct == 0)
+//            reward = 100;
+        else if ((s.turnTaking && !groundedAction.actionName().equals(WAIT)) || (!s.turnTaking && groundedAction.actionName().equals(WAIT)))
+            reward = -1000;
         else
-            reward = 1;
+            reward = 5;
 
         return reward;
     }

@@ -4,12 +4,14 @@ package MuMMER; /**
 
 import burlap.mdp.auxiliary.DomainGenerator;
 import burlap.mdp.core.action.Action;
+import burlap.mdp.core.action.ActionType;
 import burlap.mdp.core.action.UniversalActionType;
 import burlap.mdp.core.state.State;
 import burlap.mdp.singleagent.SADomain;
 import burlap.mdp.singleagent.model.FactoredModel;
 import burlap.mdp.singleagent.model.statemodel.SampleStateModel;
 
+import java.util.List;
 import java.util.Random;
 
 public class mDomain implements DomainGenerator, iAttributes, iActions{
@@ -27,7 +29,6 @@ public class mDomain implements DomainGenerator, iAttributes, iActions{
                 new UniversalActionType(AGOODBYE),
                 new UniversalActionType(CHAT),
                 new UniversalActionType(GIVEDIR),
-                new UniversalActionType(REQNAME),
                 new UniversalActionType(WAIT),
                 new UniversalActionType(CONFIRM),
                 new UniversalActionType(REQTASK));
@@ -76,6 +77,7 @@ public class mDomain implements DomainGenerator, iAttributes, iActions{
             String[] uTask;
 
             //TODO: inquiry: make sure the action selection is already been done before reaching this point.
+            //TODO: Still need a lot of work for each action feedback.
             state = state.copy();
 
             //Copy the mutable state before alteration
@@ -86,7 +88,7 @@ public class mDomain implements DomainGenerator, iAttributes, iActions{
 
             //If it was the agent's turn, check user's response
             if (!s.turnTaking){
-                if(actionID == 2 && s.prevAct != 0){
+                if((actionID == 2 && s.prevAct != 0) || (actionID != 2 && s.prevAct == 0)){
                     s.usrEngaged = false;
                     s.usrTermination = true;
                 }
@@ -98,10 +100,16 @@ public class mDomain implements DomainGenerator, iAttributes, iActions{
 
                 /* If agent takes taskConsume OR giveDir action while taskfilled is true, set the task as completed
                 and reset task attributes. Also switch the mode to task-based */
-                if (actionID == 1 || actionID == 5){
+                if (actionID == 1){
+
+                    //If took the tskConsume without having a task -> punish
+                    if(!s.tskFilled || s.ctxTask.equals("directions")){
+                        s.usrTermination = true;
+                        s.usrEngaged = false;
+                    }
 
                     //If agent is confident on the task given, set task completed and flip the attributes
-                    if(!s.lowConf){
+                    if(!s.lowConf && s.tskFilled){
                         s.tskCompleted = true;
                         s.tskFilled = false;
                         s.ctxTask = "";
@@ -111,13 +119,32 @@ public class mDomain implements DomainGenerator, iAttributes, iActions{
                     }
                 }
 
-                //If agents does not consume task while task slot is filled (and there is a high confidence score), punish
-                if (s.tskFilled && (actionID != 1 || actionID != 5)){
-                    if (!s.lowConf){
+                if (actionID == 5){
+
+                    //If took the tskConsume without having a task -> punish
+                    if(!s.ctxTask.equals("directions")){
+                        s.usrTermination = true;
+                        s.usrEngaged = false;
+                    }
+
+                    //If agent is confident on the task given, set task completed and flip the attributes
+                    if(!s.lowConf && s.ctxTask.equals("directions")){
+                        s.tskCompleted = true;
+                        s.tskFilled = false;
+                        s.ctxTask = "";
+                    } else {
                         s.usrTermination = true;
                         s.usrEngaged = false;
                     }
                 }
+
+//                //If agents does not consume task while task slot is filled (and there is a high confidence score), punish
+//                if ((actionID != 1 && s.tskFilled) || (actionID != 5 && s.tskFilled)){
+//                    if (!s.lowConf){
+//                        s.usrTermination = true;
+//                        s.usrEngaged = false;
+//                    }
+//                }
 
                 if (actionID == 4)
                     s.mode = true;
@@ -146,6 +173,7 @@ public class mDomain implements DomainGenerator, iAttributes, iActions{
 //                    else if (usrTurnDist > 1.0 && usrTurnDist <= 1.8)
 //                        agent.setValue(exWorld.DISTANCE, 1);
 //                }
+
                 //If user have said goodbye on his previous turn, then make him leave.
                 if (s.bye)
                     s.usrEngaged = false;
@@ -182,6 +210,9 @@ public class mDomain implements DomainGenerator, iAttributes, iActions{
                         break;
                     case "uConfirm":
                         s.lowConf = false;
+                    case "uLeave":
+                        s.usrTermination = true;
+                        s.usrEngaged = false;
                     default:
                         break;
                 }
@@ -210,62 +241,59 @@ public class mDomain implements DomainGenerator, iAttributes, iActions{
             String[] ctx = {"", "coffee", "electronics", "clothing"};
             int index, iCtx;
 
-            Random random = new Random();
-            index = random.nextInt(task.length);
+            index = randInt(0, task.length - 1);
+
+//            if (s.prevAct == 1)
+//                if (!s.tskFilled || s.lowConf){
+//                    result[0] = "uHarshLeave";
+//                    result[1] = "";
+//
+//                    return result;
+//                }
+//
+//            if (s.prevAct == 5)
+//                if ((!s.tskFilled && !s.ctxTask.equals("directions"))|| s.lowConf){
+//                    result[0] = "uHarshLeave";
+//                    result[1] = "";
+//
+//                    return result;
+//                }
+
 
             //If last agent's action was to request for task, user have 80% to provide a random TASK.
             if (s.prevAct == 8){
                 double r = Math.random();
-                if (r < .8){
+                if (r < .6){
                     result[0] = task[0];
-                    random = new Random();
-                    iCtx = random.nextInt(ctx.length);
+                    iCtx = randInt(0, ctx.length - 1);
                     result[1] = ctx[iCtx];
 
                     return result;
                 } else {
-                    random = new Random();
-                    index = random.nextInt(task.length - 1); // select from all actions except uChat
+                    index = randInt(0, task.length - 2); // select from all actions except uChat
                 }
             }
 
-            /* If user was chatting during his previous turn (meaning he got a response that the agent could not comply),
-             * there is a 50% probability to give a task and 50% to say bye and leave */
+            /* If agent already in chat mode, user have 50% probability to continue the chat
+            and 50% to take some other action */
             if (s.usrEngChat) {
                 double r = Math.random();
-                if (!s.mode){
                     if (r < .5){
-                        result[0] = task[0];
-                        random = new Random();
-                        iCtx = random.nextInt(ctx.length);
-                        result[1] = ctx[iCtx];
-
-                        return result;
-                    } else {
-                        result[0] = "uGoodbye";
+                        result[0] = task[task.length - 1];
                         result[1] = "";
 
                         return result;
+                    } else {
+                        index = randInt(0, task.length - 1);
                     }
-                }else{ //else there is a 80% probability for the user to give a new task.
-                    r = Math.random();
-                    if (r < .8){
-                        result[0] = task[0];
-                        random = new Random();
-                        iCtx = random.nextInt(ctx.length);
-                        result[1] = ctx[iCtx];
 
-                        return result;
-                    }
-                }
             }
 
             //If agent NOT in chat mode, continue with uniform distribution action selection.
             result[0] = task[index];
             result[1] = "";
             if (task[index].equals("uReq_Task")){
-                random = new Random();
-                iCtx = random.nextInt(ctx.length);
+                iCtx = randInt(0, ctx.length - 1);
                 result[1] = ctx[iCtx];
             }
             if (task[index].equals("uReq_Dir")){
@@ -280,13 +308,20 @@ public class mDomain implements DomainGenerator, iAttributes, iActions{
 
         public double getRandomDoubleInRange(double min, double max){
             Random r = new Random();
-            double randomValue = min + (max - min) * r.nextDouble();
-            return randomValue;
+            return min + (max - min) * r.nextDouble();
             //TODO make this round
         }
     }
 
+    public static int randInt(int min, int max) {
+        Random rand = new Random();
 
+        // nextInt is normally exclusive of the top value,
+        // so add 1 to make it inclusive
+        int randomNum = rand.nextInt((max - min) + 1) + min;
+
+        return randomNum;
+    }
 
 
 }
