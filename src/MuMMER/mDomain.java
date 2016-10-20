@@ -5,12 +5,15 @@ package MuMMER; /**
 import burlap.mdp.auxiliary.DomainGenerator;
 import burlap.mdp.core.action.Action;
 import burlap.mdp.core.action.ActionType;
+import burlap.mdp.core.action.SimpleAction;
 import burlap.mdp.core.action.UniversalActionType;
 import burlap.mdp.core.state.State;
 import burlap.mdp.singleagent.SADomain;
 import burlap.mdp.singleagent.model.FactoredModel;
 import burlap.mdp.singleagent.model.statemodel.SampleStateModel;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
@@ -23,15 +26,26 @@ public class mDomain implements DomainGenerator, iAttributes, iActions{
     @Override
     public SADomain generateDomain() {
         SADomain domain = new SADomain();
+
         domain.addActionTypes(
-                new UniversalActionType(TASKCONSUME),
-                new UniversalActionType(GREET),
-                new UniversalActionType(AGOODBYE),
-                new UniversalActionType(CHAT),
-                new UniversalActionType(GIVEDIR),
-                new UniversalActionType(WAIT),
-                new UniversalActionType(CONFIRM),
-                new UniversalActionType(REQTASK));
+//                new UniversalActionType(TASKCONSUME),
+//                new UniversalActionType(GREET),
+//                new UniversalActionType(AGOODBYE),
+//                new UniversalActionType(CHAT),
+//                new UniversalActionType(GIVEDIR),
+//                new UniversalActionType(WAIT),
+//                new UniversalActionType(CONFIRM),
+//                new UniversalActionType(REQTASK));
+
+                new PepperAction(TASKCONSUME),
+                new PepperAction(GREET),
+                new PepperAction(AGOODBYE),
+                new PepperAction(CHAT),
+                new PepperAction(GIVEDIR),
+                new PepperAction(WAIT),
+                new PepperAction(CONFIRM),
+                new PepperAction(REQTASK));
+
 
         WorldStateModel model = new WorldStateModel();
         RewardFunc rf = new RewardFunc();
@@ -76,8 +90,6 @@ public class mDomain implements DomainGenerator, iAttributes, iActions{
         public State sample(State state, Action action) {
             String[] uTask;
 
-            //TODO: inquiry: make sure the action selection is already been done before reaching this point.
-            //TODO: Still need a lot of work for each action feedback.
             state = state.copy();
 
             //Copy the mutable state before alteration
@@ -88,6 +100,12 @@ public class mDomain implements DomainGenerator, iAttributes, iActions{
 
             //If it was the agent's turn, check user's response
             if (!s.turnTaking){
+
+                if(actionID == 6){
+                    s.usrEngaged = false;
+                    s.usrTermination = true;
+                }
+
                 if((actionID == 2 && s.prevAct != 0) || (actionID != 2 && s.prevAct == 0)){
                     s.usrEngaged = false;
                     s.usrTermination = true;
@@ -113,7 +131,7 @@ public class mDomain implements DomainGenerator, iAttributes, iActions{
                         s.tskCompleted = true;
                         s.tskFilled = false;
                         s.ctxTask = "";
-                    } else {
+                    } else if(s.lowConf){
                         s.usrTermination = true;
                         s.usrEngaged = false;
                     }
@@ -146,6 +164,16 @@ public class mDomain implements DomainGenerator, iAttributes, iActions{
 //                    }
 //                }
 
+                if (s.tskFilled && actionID != 1){
+                    s.usrEngaged = false;
+                    s.usrTermination = true;
+                }
+
+                if (s.tskFilled && actionID != 5){
+                    s.usrEngaged = false;
+                    s.usrTermination = true;
+                }
+
                 if (actionID == 4)
                     s.mode = true;
                 else
@@ -174,6 +202,13 @@ public class mDomain implements DomainGenerator, iAttributes, iActions{
 //                        agent.setValue(exWorld.DISTANCE, 1);
 //                }
 
+                // Only the wait action should be applicable during this turn
+                if (actionID != 6){
+                    s.usrTermination = true;
+                    s.usrEngaged = false;
+                }
+
+
                 //If user have said goodbye on his previous turn, then make him leave.
                 if (s.bye)
                     s.usrEngaged = false;
@@ -201,10 +236,12 @@ public class mDomain implements DomainGenerator, iAttributes, iActions{
                         s.ctxTask = "";
                         break;
                     case "uReq_Task":
+                        s.distance = 1;
                         s.tskFilled = true;
                         s.ctxTask = uTask[1];
                         break;
                     case "uReq_Dir":
+                        s.distance = 1;
                         s.tskFilled = true;
                         s.ctxTask = uTask[1];
                         break;
@@ -260,13 +297,15 @@ public class mDomain implements DomainGenerator, iAttributes, iActions{
 //                }
 
 
-            //If last agent's action was to request for task, user have 80% to provide a random TASK.
+            //If last agent's action was to request for task, user have 80% to provide a random TASK or DIRECTIONS.
             if (s.prevAct == 8){
                 double r = Math.random();
                 if (r < .6){
-                    result[0] = task[0];
-                    iCtx = randInt(0, ctx.length - 1);
-                    result[1] = ctx[iCtx];
+                    result[0] = task[randInt(0, 1)];
+                    if (result[0].equals("uReq_Task"))
+                        result[1] = ctx[randInt(0, ctx.length - 1)];
+                    if (result[0].equals("uReq_Dir"))
+                        result[1] = "directions";
 
                     return result;
                 } else {
@@ -289,7 +328,7 @@ public class mDomain implements DomainGenerator, iAttributes, iActions{
 
             }
 
-            //If agent NOT in chat mode, continue with uniform distribution action selection.
+            //Else continue with uniform distribution action selection.
             result[0] = task[index];
             result[1] = "";
             if (task[index].equals("uReq_Task")){

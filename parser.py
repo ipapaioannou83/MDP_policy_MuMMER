@@ -7,7 +7,7 @@ from naoqi import ALProxy
 from naoqi import ALBroker
 from naoqi import ALModule
 from ShopList import ShopList
-from chatterbot import ChatBot
+from rivescript import RiveScript
 
 some_state = None
 memory = None
@@ -80,7 +80,7 @@ def action(state):
         return random.choice(bestAction)['name']
     except IndexError:
         pass
-    return 'Chat'
+    #return 'Chat'
 
 
 class SpeechEventModule(ALModule):
@@ -91,10 +91,6 @@ class SpeechEventModule(ALModule):
 
 
     def onSpeechDetected(self, *_args):
-        print "inside event call"
-        print "USER: ", ALMemory.getData("Dialog/LastInput"), '\n'
-        print "tskFilled", ALMemory.getData("tskFilled")
-        print "ctxTask", ALMemory.getData("ctxTask")
         #print ALDialog.getASRConfidenceThreshold()
         # unsubscribe to stop listening. Will resubscribe during user's turn (TODO: probably will change...)
         global memory
@@ -132,8 +128,9 @@ class HumanGreeterModule(ALModule):
         # Unsubscribe to the event when talking,
         # to avoid repetitions
         global memory
-        memory.unsubscribeToEvent("FaceDetected",
-            "HumanGreeter")
+        ALDialog.subscribe('my_dialog_example')
+        #memory.subscribeToEvent("Dialog/LastInput", "SpeechEvent", "onSpeechDetected")
+        memory.unsubscribeToEvent("FaceDetected", "HumanGreeter")
         
         #instantiateMemory()
         #readMemoryState(ALMemory)
@@ -197,16 +194,11 @@ def instantiateMemory():
 
     # Initialize chatbot
     global chatbot
-    chatbot = ChatBot('Ron Obvious', trainer='chatterbot.trainers.ChatterBotCorpusTrainer')
-    chatbot.train("chatterbot.corpus.english")
+    chatbot = RiveScript()
+    chatbot.load_directory("/media/elveleg/Data/MuMMER Project/chatbot/eg/brain")
+    chatbot.sort_replies()
     
-    print chatbot.get_response("")
-    
-# Initialize state
-def resetAttributes():
-    ALMemory.insertData("ctxTask","")
-    ALMemory.insertData("shopName","")
-    ALMemory.insertData("tskFilled","False")
+    #print chatbot.reply("localuser", "Hello there")
     
 
 def observeState():
@@ -222,18 +214,33 @@ def observeState():
       
     
 def decodeAction(nextAction):
-    if nextAction == "Greet":
-        greet()
-    #elif nextAction == "Chat":
-        #chat(lastUsrInput)
-    elif nextAction == "wait":
-        wait()
-    elif nextAction == "taskConsume":
-        taskConsume()
+    
+    try:
+        if nextAction == "Greet":
+            greet()
+        elif nextAction == "Chat":
+            chat(lastUsrInput)
+        elif nextAction == "wait":
+            wait()
+        elif nextAction == "taskConsume":
+            taskConsume()
+        elif nextAction == "giveDirections":
+            giveDirections()
+        elif nextAction == "Goodbye":
+            goodbye()
+        elif nextAction == "confirm":
+            confirm()
         
-    # Write action taken to state
-    if actionID[nextAction] != 6:
-        ALMemory.insertData("prevAct", actionID[nextAction])
+        if nextAction == "Chat":
+            ALMemory.insertData("mode","True")
+        else:
+            ALMemory.insertData("mode","False")        
+            
+        # Write action taken to state
+        if actionID[nextAction] != 6:
+            ALMemory.insertData("prevAct", actionID[nextAction])
+    except KeyError:
+        decodeAction("Chat") #Set Chat as the default action if state was messed up and not present in the policy
     
     flipTurn()
     observeState()
@@ -243,29 +250,75 @@ def flipTurn():
     if nextAction != None:
         global turn
         turn = not turn
-        ALMemory.insertData("turntaking",  bool2str(turn))
+        ALMemory.insertData("turntaking", bool2str(turn))
+
 
 def chat(sentence):
     tts = ALProxy("ALTextToSpeech")
     try:
-        tts.say(chatbot.get_response(sentence))
+        tts.say(chatbot.reply("localuser", sentence))
     except RuntimeError:
         tts.say("What is your name")
         #pass
+
 
 def greet():
     tts = ALProxy("ALTextToSpeech")
     tts.say("Hello")
        
-def taskConsume(): #giveDirections()
+       
+def goodbye():
+    tts = ALProxy("ALTextToSpeech")
+    tts.say("Have a nice day")
+    
+    # TODO: Have to change it to engage other person instead of exit
+    ALDialog.unsubscribe('my_dialog_example')
+    ALTracker.unregisterAllTargets()
+    ALTracker.stopTracker()
+    myBroker.shutdown()
+    sys.exit(0)
+    ###################
+    
+    global memory
+    memory.subscribeToEvent("FaceDetected", "HumanGreeter", "onFaceDetected")
+    
+    instantiateMemory()
+    observeState()
+    
+
+def confirm():
+    tts = ALProxy("ALTextToSpeech")
+    if lastUsrInput is not None:
+        tts.say("Sorry, did you say " + lastUsrInput + "?")
+    else:
+        tts.say("Sorry, can you repeat that please?") 
+       
+def giveDirections():
     print "shopName: ", ALMemory.getData("shopName")
     tts = ALProxy("ALTextToSpeech")
     tts.say("You are asking for a " + shopList.getShop(ALMemory.getData("shopName")).getCategory() + "shop. " + 
-            ALMemory.getData("shopName") + " is this way!")
+            shopList.getDirections(ALMemory.getData("shopName")))
     ALMemory.insertData("ctxTask","")
     ALMemory.insertData("tskFilled","False")
+    ALMemory.insertData("tskCompleted","True")
+    
+    
+def taskConsume():
+    tts = ALProxy("ALTextToSpeech") #TODO: ("ALAnimatedSpeech") to make it move at the same time. need to find a way to rest it afterwards
+    tts.say("Let me see. There are " + str(len( shopList.filteredCategory(ALMemory.getData("ctxTask")) )) +
+    " " + ALMemory.getData("ctxTask") + " shops nearby")
+    
+    print shopList.filteredCategory(ALMemory.getData("ctxTask")).enumShops() 
+    tts.say("These are " + shopList.filteredCategory(ALMemory.getData("ctxTask")).enumShops() + ".")
 
+    ALMemory.insertData("ctxTask","")
+    ALMemory.insertData("tskFilled","False")
+    ALMemory.insertData("tskCompleted","True")
+    
+    
 def wait():
+    ALMemory.insertData("tskCompleted","False")
+    ALMemory.insertData("timeout","False")
     memory.subscribeToEvent("Dialog/LastInput", "SpeechEvent", "onSpeechDetected")
     #ALDialog.subscribe('my_dialog_example')
     while True:
@@ -293,13 +346,12 @@ def bool2str(s):
          raise ValueError("Cannot convert {} to a bool".format(s))
     
 '''tskC, tskF, prevA, dist, ctx, usrEng, mode, timeout, usrTerm, bye, usrEngC, lowConf, turn'''
-some_state = state(False, False, 1, 1, '', True, False, False, False, False, False, False, True)
+some_state = state(False, True, 2, 1, 'directions', True, False, False, False, False, False, False, False)
 some_state.printState()
 print action(some_state)
 
 # Populate the shop list from file
 shopList= ShopList()
-#print shopList.getShop("Public").getCategory()
 
 
 parser = argparse.ArgumentParser()
@@ -338,18 +390,20 @@ ALDialog.setLanguage("English")
 
 topic_content = ('topic: ~example_topic_content()\n'
                        'language: enu\n'
-                       'concept:(food) [fruits chicken beef eggs]\n'
+                       'concept:(bye) [bye goodbye cheers]\n'
                        'concept:(coffee) [coffee cappucino latte esspresso americano]\n'
-                       'concept:(shop) [starbucks costa public "harware electronics"]\n'
-                       'u: (I [want "would like"] {some} _~food) Sure! You must really like $1.\n'
-                       'u: (how are you today) Hello human, I am fine thank you and you?\n'
-                       'u: (Good morning Nao did you sleep well) No damn! You forgot to switch me off!\n'
+                       'concept:(shop) [starbucks costa public "harware electronics" tesco primark "phone heaven"]\n'
+                       'concept:(electronics) [iPhone Samsung case adapter television TV charger mobile phone]\n'
+                       'concept:(clothing) [shoes jacket "t-shirt" belt jeans trousers shirt suit caot underwear clothing]\n'
                        #'u: ([e:FrontTactilTouched e:MiddleTactilTouched e:RearTactilTouched]) $tskFilled = True $ctxTask = directions $shopName = costa\n'
                        'u: (Open the Pod bay doors) I am sorry Dave, I am afraid I can not do that.\n'
-                       'u: (* ~coffee) $tskFilled=True $ctxTask=coffee $shopName=costa\n'
-                       'u: (e:Dialog/NotUnderstood) Sorry \n'
+                       'u: (* ~coffee) $tskFilled=True $ctxTask=coffee $usrEngChat=False\n'
+                       'u: (* ~electronics) $tskFilled=True $ctxTask=electronics $usrEngChat=False\n'
+                       'u: (* ~clothing) $tskFilled=True $ctxTask=clothing $usrEngChat=False\n'
+                           'u: (* ~bye) $bye=True $usrEngChat=False\n'
+                       'u: (e:Dialog/NotUnderstood) $usrEngChat=True \n'
                        #'u: (e:Dialog/LastInput) $Dialog/LastInput=$Dialog/LastInput \n'
-                       'u: (* _~shop) $tskFilled=True $ctxTask=directions $shopName=$1\n') 
+                       'u: (* _~shop) $tskFilled=True $ctxTask=directions $shopName=$1 $usrEngChat=False \n') 
 
 
 # Loading the topics directly as text strings
@@ -358,7 +412,7 @@ topic_name = ALDialog.loadTopicContent(topic_content)
 # Activating the loaded topics
 ALDialog.activateTopic(topic_name)
 
-ALDialog.subscribe('my_dialog_example')
+#ALDialog.subscribe('my_dialog_example')
 
 #print "shopName", ALMemory.getData("shopName"), '\n'
 
@@ -371,9 +425,9 @@ SpeechEvent = SpeechEventModule("SpeechEvent")
 global HumanGreeter
 HumanGreeter = HumanGreeterModule("HumanGreeter")
 
-# Subscribe to the speech event:
+# Subscribe to the speech and face detection events:
 memory = ALProxy("ALMemory")
-memory.subscribeToEvent("Dialog/LastInput", "SpeechEvent", "onSpeechDetected")
+#memory.subscribeToEvent("Dialog/LastInput", "SpeechEvent", "onSpeechDetected")
 memory.subscribeToEvent("FaceDetected", "HumanGreeter", "onFaceDetected")
 
 instantiateMemory()
@@ -382,9 +436,9 @@ instantiateMemory()
 try:
     while True:
         time.sleep(1)
-except KeyboardInterrupt:
+finally:
     print
-    print "Interrupted by user, shutting down"
+    print "Interrupted by user, shutting down..."
     ALTracker.stopTracker()
     ALTracker.unregisterAllTargets()
     myBroker.shutdown()

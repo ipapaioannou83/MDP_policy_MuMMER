@@ -7,6 +7,7 @@ import burlap.behavior.singleagent.auxiliary.performance.PerformanceMetric;
 import burlap.behavior.singleagent.auxiliary.performance.TrialMode;
 import burlap.behavior.singleagent.learning.LearningAgent;
 import burlap.behavior.singleagent.learning.LearningAgentFactory;
+import burlap.behavior.singleagent.learning.tdmethods.QLearning;
 import burlap.behavior.singleagent.learning.tdmethods.QLearningStateNode;
 import burlap.behavior.singleagent.learning.tdmethods.SarsaLam;
 import burlap.mdp.core.Domain;
@@ -33,14 +34,14 @@ import java.util.Map;
 
 
 public class MDP_trainer {
-    public static final double discount = 0.5;
+    public static final double discount = 0.99;
     public static final double learning_rate = 0.1;
     public static final double lamda = 0.3;
     public static final double epsilon = 0.99;
     private EpsilonGreedy learnedPolicy = new EpsilonGreedy(epsilon);
     private SADomain domain;
     private List<Episode> episodes;
-    private static final int learning_iterations = 70000;
+    private static final int learning_iterations = 100000;
 
 
     public MDP_trainer(){
@@ -49,9 +50,8 @@ public class MDP_trainer {
         State initialState = mState.getInitialState();
         SimulatedEnvironment env = new SimulatedEnvironment(domain, initialState);
 
-        SarsaLam la = new SarsaLam(domain, discount, new SimpleHashableStateFactory(), 0, learning_rate, lamda) {
-
-
+        QLearning la = new QLearning(domain, discount, new SimpleHashableStateFactory(), 0.0, learning_rate, 40){
+        //SarsaLam la = new SarsaLam(domain, discount, new SimpleHashableStateFactory(), 0, learning_rate, lamda) {
 
             @Override
             public void writeQTable(String path){
@@ -60,19 +60,11 @@ public class MDP_trainer {
                 Gson gson = new Gson();
 
                 try {
-                    FileWriter fw = new FileWriter("jsonDump_temp.json");
+                    FileWriter fw = new FileWriter(path);
                     fw.write(gson.toJson(qF));
                     fw.close();
                 } catch (IOException e) {
                     e.printStackTrace();
-                }
-
-                Yaml yaml = new Yaml();
-
-                try {
-                    yaml.dump(this.qFunction, new BufferedWriter(new FileWriter(path)));
-                } catch (IOException var4) {
-                    var4.printStackTrace();
                 }
             }
         };
@@ -94,7 +86,7 @@ public class MDP_trainer {
 
 
         //Export policy to file
-        la.writeQTable("exportedPolicy.yaml");
+        //la.writeQTable("jsonDump_temp.json");
 
         //generatePlots(domain, env);
 
@@ -164,7 +156,8 @@ public class MDP_trainer {
 
             @Override
             public LearningAgent generateAgent() {
-                return new SarsaLam((SADomain) domain, discount, new SimpleHashableStateFactory(), 0.0, learning_rate, lamda);
+                //return new SarsaLam((SADomain) domain, discount, new SimpleHashableStateFactory(), 0.0, learning_rate, lamda);
+                return new QLearning((SADomain) domain, discount, new SimpleHashableStateFactory(), 0.0, learning_rate, 40);
             }
         };
 

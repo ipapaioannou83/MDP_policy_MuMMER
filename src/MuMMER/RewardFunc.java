@@ -28,8 +28,8 @@ public class RewardFunc implements RewardFunction, iActions {
             reward = -100;
 //        else if (groundedAction.actionName().equals(GREET) && s.prevAct == 0)
 //            reward = 100;
-        else if ((s.turnTaking && !groundedAction.actionName().equals(WAIT)) || (!s.turnTaking && groundedAction.actionName().equals(WAIT)))
-            reward = -1000;
+//        else if ((s.turnTaking && !groundedAction.actionName().equals(WAIT)) || (!s.turnTaking && groundedAction.actionName().equals(WAIT)))
+//            reward = -1000;
         else
             reward = 5;
 
