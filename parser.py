@@ -8,6 +8,7 @@ from naoqi import ALBroker
 from naoqi import ALModule
 from ShopList import ShopList
 from rivescript import RiveScript
+from State import state
 
 some_state = None
 memory = None
@@ -34,27 +35,9 @@ lowConf = False
 lastUsrInput = ''
 
 # Action dictionary
-actionID = {"taskConsume": 1, "Greet": 2, "Goodbye": 3, "Chat": 4, "giveDirections": 5, "wait": 6, "confirm": 7, "reg_task": 8}
+actionID = {"taskConsume": 1, "Greet": 2, "Goodbye": 3, "Chat": 4, "giveDirections": 5, "wait": 6, "confirm": 7, "requestTask": 8}
 
 
-class state:
-    def __init__(self, tskC, tskF, prevA, dist, ctx, usrEng, mode, timeout, usrTerm, bye, usrEngC, lowConf, turn):
-        self.tskCompleted = tskC
-        self.tskFilled = tskF
-        self.prevAct = prevA
-        self.distance = dist
-        self.ctxTask = ctx
-        self.turnTaking = turn
-        self.usrEngaged = usrEng
-        self.mode = mode
-        self.timeout = timeout
-        self.usrTermination = usrTerm
-        self.bye = bye
-        self.usrEngChat = usrEngC
-        self.lowConf = lowConf
-
-    def printState(self):
-        print "State: ", self.tskCompleted, self.tskFilled, self.prevAct, self.distance, self.ctxTask, self.usrEngaged, self.mode, self.timeout, self.usrTermination, self.bye, self.usrEngChat, self.lowConf, self.turnTaking
 
 
 #### Action selection function
@@ -121,16 +104,18 @@ class HumanGreeterModule(ALModule):
         detected.
 
         """
+
+        ALTracker.registerTarget("People", ALMemory.getData("PeoplePerception/PeopleDetected")[1][0])
+        ALTracker.track("People")
         
-        ALTracker.registerTarget("Face", 20)
-        ALTracker.track("Face")
         
         # Unsubscribe to the event when talking,
         # to avoid repetitions
         global memory
         ALDialog.subscribe('my_dialog_example')
         #memory.subscribeToEvent("Dialog/LastInput", "SpeechEvent", "onSpeechDetected")
-        memory.unsubscribeToEvent("FaceDetected", "HumanGreeter")
+        #memory.unsubscribeToEvent("FaceDetected", "HumanGreeter")
+        memory.unsubscribeToEvent("PeoplePerception/PeopleDetected", "HumanGreeter")        
         
         #instantiateMemory()
         #readMemoryState(ALMemory)
@@ -138,6 +123,30 @@ class HumanGreeterModule(ALModule):
         #decodeAction(nextAction)
         
         #memory.subscribeToEvent("FaceDetected", "HumanGreeter", "onFaceDetected")
+
+class EngagementZoneModule(ALModule):
+    """ A simple module able to react to facedetection events """
+    def __init__(self, name):
+        ALModule.__init__(self, name)
+        self.tts = ALProxy("ALTextToSpeech")
+        
+
+    def onMoveAway(self, *_args):
+        global dist
+        global memory
+        memory.unsubscribeToEvent("EngagementZones/PersonApproached", "EngagementZone")  
+        dist = 2
+#        self.tts.say("come back")
+#        observeState()
+        
+    def onMoveCloser(self, *_args):
+        global dist
+        global memory
+        memory.unsubscribeToEvent("EngagementZones/PersonApproached", "EngagementZone")  
+        dist = 1
+#        self.tts.say("welcome back")
+#        observeState()
+        
 
 # Read memory variables (state attributes)
 def readMemoryState(ALMemory):
@@ -155,11 +164,12 @@ def readMemoryState(ALMemory):
     global usrEngC
     global lowConf
     global lastUsrInput
+    global distance
     
     tskC = str2bool(ALMemory.getData("tskCompleted"))
     tskF = str2bool(ALMemory.getData("tskFilled"))
     prevA = ALMemory.getData("prevAct") # int
-    dist = ALMemory.getData("distance") # int
+    dist = getDistance()
     ctx = ALMemory.getData("ctxTask") # string
     turn = str2bool(ALMemory.getData("turntaking"))
     usrEng = str2bool(ALMemory.getData("usrEngaged"))
@@ -170,6 +180,7 @@ def readMemoryState(ALMemory):
     usrEngC = str2bool(ALMemory.getData("usrEngChat"))
     lowConf = str2bool(ALMemory.getData("lowConf"))
     lastUsrInput = ALMemory.getData("Dialog/LastInput")
+
     
     #print "memory", tskC, tskF, prevA, dist, ctx, usrEng, mode, timeout, usrTerm, bye, usrEngC, lowConf, turn, lastUsrInput
     
@@ -178,7 +189,7 @@ def instantiateMemory():
     ALMemory.insertData("shopName","")
     ALMemory.insertData("tskCompleted","False")
     ALMemory.insertData("prevAct", 0)
-    ALMemory.insertData("distance", 1)
+    #ALMemory.insertData("distance", 1)
     ALMemory.insertData("turntaking","False")
     ALMemory.insertData("usrEngaged","True")
     ALMemory.insertData("mode","False")
@@ -230,6 +241,8 @@ def decodeAction(nextAction):
             goodbye()
         elif nextAction == "confirm":
             confirm()
+        elif nextAction == "requestTask":
+            requestTask()
         
         if nextAction == "Chat":
             ALMemory.insertData("mode","True")
@@ -240,6 +253,8 @@ def decodeAction(nextAction):
         if actionID[nextAction] != 6:
             ALMemory.insertData("prevAct", actionID[nextAction])
     except KeyError:
+#        pass
+    #TODO asdf
         decodeAction("Chat") #Set Chat as the default action if state was messed up and not present in the policy
     
     flipTurn()
@@ -315,14 +330,23 @@ def taskConsume():
     ALMemory.insertData("tskFilled","False")
     ALMemory.insertData("tskCompleted","True")
     
+def requestTask():
+    tts = ALProxy("ALTextToSpeech")
+    tts.say("Is there anything I can help you with?")
+    
     
 def wait():
+    global memory
     ALMemory.insertData("tskCompleted","False")
     ALMemory.insertData("timeout","False")
+    memory.subscribeToEvent("EngagementZones/PersonMovedAway", "EngagementZone", "onMoveAway")
+    memory.subscribeToEvent("EngagementZones/PersonApproached", "EngagementZone", "onMoveCloser")
     memory.subscribeToEvent("Dialog/LastInput", "SpeechEvent", "onSpeechDetected")
     #ALDialog.subscribe('my_dialog_example')
     while True:
-        pass
+        if (time.time() > time.time() + 10) or (dist == 2):
+            print "broken"
+            break
 
 def generateState():
     readMemoryState(ALMemory)
@@ -344,8 +368,22 @@ def bool2str(s):
          return 'False'
     else:
          raise ValueError("Cannot convert {} to a bool".format(s))
+        
+def getDistance():
+    distance = 0
+    data = ALMemory.getData("PeoplePerception/PeopleDetected")
+    if data[1][0][1] <= 1:
+        distance = 1
+    if data[1][0][1] > 1 and data[1][0][1] <= 2.5:
+        distance = 1
+    elif data[1][0][1] > 2.5:
+        distance = 2
+        ALMemory.insertData("timeout","False")
+        print "far, far away"
     
-'''tskC, tskF, prevA, dist, ctx, usrEng, mode, timeout, usrTerm, bye, usrEngC, lowConf, turn'''
+    return distance
+    
+#tskC, tskF, prevA, dist, ctx, usrEng, mode, timeout, usrTerm, bye, usrEngC, lowConf, turn'''
 some_state = state(False, True, 2, 1, 'directions', True, False, False, False, False, False, False, False)
 some_state.printState()
 print action(some_state)
@@ -383,6 +421,7 @@ ALSpeechRecognition = session.service("ALSpeechRecognition")
 ALMemory = session.service("ALMemory")
 ALDialog = session.service("ALDialog")
 ALTracker = session.service("ALTracker")
+ALEngagementZones = session.service("ALEngagementZones")
 
 ALDialog.setLanguage("English")
 
@@ -403,6 +442,7 @@ topic_content = ('topic: ~example_topic_content()\n'
                            'u: (* ~bye) $bye=True $usrEngChat=False\n'
                        'u: (e:Dialog/NotUnderstood) $usrEngChat=True \n'
                        #'u: (e:Dialog/LastInput) $Dialog/LastInput=$Dialog/LastInput \n'
+                       'u: (e:Dialog/NotSpeaking5) $timeout=True \n'
                        'u: (* _~shop) $tskFilled=True $ctxTask=directions $shopName=$1 $usrEngChat=False \n') 
 
 
@@ -425,10 +465,18 @@ SpeechEvent = SpeechEventModule("SpeechEvent")
 global HumanGreeter
 HumanGreeter = HumanGreeterModule("HumanGreeter")
 
+global EngagementZone
+EngagementZone = EngagementZoneModule("EngagementZone")
+
 # Subscribe to the speech and face detection events:
 memory = ALProxy("ALMemory")
+pplperc = ALProxy("ALPeoplePerception")
+pplperc.subscribe("test")
 #memory.subscribeToEvent("Dialog/LastInput", "SpeechEvent", "onSpeechDetected")
-memory.subscribeToEvent("FaceDetected", "HumanGreeter", "onFaceDetected")
+memory.subscribeToEvent("PeoplePerception/PeopleDetected", "HumanGreeter", "onFaceDetected")
+#memory.subscribeToEvent("EngagementZones/PersonMovedAway", "EngagementZone", "onMoveAway")
+#memory.subscribeToEvent("EngagementZones/PersonApproached", "EngagementZone", "onMoveCloser")
+
 
 instantiateMemory()
 

@@ -41,7 +41,7 @@ public class MDP_trainer {
     private EpsilonGreedy learnedPolicy = new EpsilonGreedy(epsilon);
     private SADomain domain;
     private List<Episode> episodes;
-    private static final int learning_iterations = 100000;
+    private static final int learning_iterations = 120000;
 
 
     public MDP_trainer(){
@@ -86,7 +86,7 @@ public class MDP_trainer {
 
 
         //Export policy to file
-        //la.writeQTable("jsonDump_temp.json");
+        la.writeQTable("jsonDump_temp.json");
 
         //generatePlots(domain, env);
 

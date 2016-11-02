@@ -89,6 +89,9 @@ public class mDomain implements DomainGenerator, iAttributes, iActions{
         @Override
         public State sample(State state, Action action) {
             String[] uTask;
+            double usrDistMin = 0.2;
+            double usrDistMax = 2.2;
+            double usrTurnDist = 0;
 
             state = state.copy();
 
@@ -185,22 +188,20 @@ public class mDomain implements DomainGenerator, iAttributes, iActions{
                 //Save selected action ID to prevAction attribute
                 s.prevAct = actionID;
             } else { //If it was the user's turn (agent in wait state) pick a task at random
-                //TODO: distance control
-//                /*  If on previous turn the user was walking away and the agents didn't take Chat or
-//                reqTask action then continue leaving (hard exit)  */
-//                if ((agent.getIntValForAttribute(exWorld.DISTANCE) == 2) && (agent.getBooleanValForAttribute(exWorld.TIMEOUT)) &&
-//                        (agent.getIntValForAttribute(exWorld.PREVACT) != 4 || agent.getIntValForAttribute(exWorld.PREVACT) != 8)){
-//                    agent.setValue(exWorld.USRTERMINATION, true);
-//                    agent.setValue(exWorld.USRENGAGED, false);
-//                } else {
-//
-//                    //Set a random acceptable user distance from the sensor (close - medium)
-//                    usrTurnDist = Math.round(getRandomDoubleInRange(usrDistMin, usrDistMax) * 100.0) / 100.0;
-//                    if (usrTurnDist > usrDistMin && usrTurnDist <= 1.0)
-//                        agent.setValue(exWorld.DISTANCE, 0);
-//                    else if (usrTurnDist > 1.0 && usrTurnDist <= 1.8)
-//                        agent.setValue(exWorld.DISTANCE, 1);
-//                }
+                /*  If on previous turn the user was walking away and the agents didn't take Chat or
+                reqTask action then continue leaving (hard exit)  */
+                if (s.distance == 2 && s.timeout && (actionID != 4 || s.prevAct != 8)){
+                    s.usrTermination = true;
+                    s.usrEngaged = false;
+                } else {
+
+                    //Set a random acceptable user distance from the sensor (close - medium)
+                    usrTurnDist = Math.round(getRandomDoubleInRange(usrDistMin, usrDistMax) * 100.0) / 100.0;
+                    if (usrTurnDist > usrDistMin && usrTurnDist <= 1.0)
+                        s.distance = 0;
+                    else if (usrTurnDist > 1.0 && usrTurnDist <= 1.8)
+                        s.distance = 1;
+                }
 
                 // Only the wait action should be applicable during this turn
                 if (actionID != 6){
@@ -227,7 +228,7 @@ public class mDomain implements DomainGenerator, iAttributes, iActions{
                         s.timeout = true;
                         break;
                     case "uWalkAway":
-                        s.distance = Integer.valueOf(uTask[1]); //TODO: distance wibbly-wobbly
+                        s.distance = Integer.valueOf(uTask[1]);
                         s.timeout = true;
                         break;
                     case "uChat":
@@ -340,7 +341,8 @@ public class mDomain implements DomainGenerator, iAttributes, iActions{
             }
             if (task[index].equals("uWalkAway")){
                 //Set the distance to "far".
-                result[1]=String.valueOf(2);       }
+                result[1]=String.valueOf(2);
+            }
 
             return result;
         }

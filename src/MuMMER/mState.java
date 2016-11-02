@@ -10,6 +10,7 @@ import burlap.mdp.core.state.UnknownKeyException;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 
 //Actions
 
@@ -168,8 +169,9 @@ public class mState implements MutableState{
 
     public static State getInitialState(){
         mState s = new mState();
+        Random random = new Random();
 
-        s.distance = 1;
+        s.distance = random.nextInt(3);
         s.mode = false;
         s.usrEngaged = true;
         s.usrTermination = false;
