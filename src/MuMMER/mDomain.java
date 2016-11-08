@@ -196,10 +196,10 @@ public class mDomain implements DomainGenerator, iAttributes, iActions{
                 } else {
 
                     //Set a random acceptable user distance from the sensor (close - medium)
-                    usrTurnDist = Math.round(getRandomDoubleInRange(usrDistMin, usrDistMax) * 100.0) / 100.0;
-                    if (usrTurnDist > usrDistMin && usrTurnDist <= 1.0)
-                        s.distance = 0;
-                    else if (usrTurnDist > 1.0 && usrTurnDist <= 1.8)
+//                    usrTurnDist = Math.round(getRandomDoubleInRange(usrDistMin, usrDistMax) * 100.0) / 100.0;
+//                    if (usrTurnDist > usrDistMin && usrTurnDist <= 1.0)
+//                        s.distance = 0;
+//                    else if (usrTurnDist > 1.0 && usrTurnDist <= 1.8)
                         s.distance = 1;
                 }
 
@@ -228,7 +228,7 @@ public class mDomain implements DomainGenerator, iAttributes, iActions{
                         s.timeout = true;
                         break;
                     case "uWalkAway":
-                        s.distance = Integer.valueOf(uTask[1]);
+                        s.distance = 2;
                         s.timeout = true;
                         break;
                     case "uChat":
@@ -339,10 +339,10 @@ public class mDomain implements DomainGenerator, iAttributes, iActions{
             if (task[index].equals("uReq_Dir")){
                 result[1] = "directions";
             }
-            if (task[index].equals("uWalkAway")){
-                //Set the distance to "far".
-                result[1]=String.valueOf(2);
-            }
+//            if (task[index].equals("uWalkAway")){
+//                //Set the distance to "far".
+//                result[1]=String.valueOf(2);
+//            }
 
             return result;
         }

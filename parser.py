@@ -70,11 +70,11 @@ class SpeechEventModule(ALModule):
     """ A simple module able to react to facedetection events """
     def __init__(self, name):
         ALModule.__init__(self, name)
-        self.tts = ALProxy("ALTextToSpeech")
+        self.tts = ALProxy("ALAnimatedSpeech")
 
 
     def onSpeechDetected(self, *_args):
-        #print ALDialog.getASRConfidenceThreshold()
+        #print ALMemory.getData("Dialog/LastInput")
         # unsubscribe to stop listening. Will resubscribe during user's turn (TODO: probably will change...)
         global memory
         memory.unsubscribeToEvent("Dialog/LastInput", "SpeechEvent")
@@ -128,8 +128,8 @@ class EngagementZoneModule(ALModule):
     """ A simple module able to react to facedetection events """
     def __init__(self, name):
         ALModule.__init__(self, name)
-        self.tts = ALProxy("ALTextToSpeech")
-        
+        #self.tts = ALProxy("ALTextToSpeech")
+        self.tts = ALProxy("ALAnimatedSpeech")
 
     def onMoveAway(self, *_args):
         global dist
@@ -209,7 +209,7 @@ def instantiateMemory():
     chatbot.load_directory("/media/elveleg/Data/MuMMER Project/chatbot/eg/brain")
     chatbot.sort_replies()
     
-    #print chatbot.reply("localuser", "Hello there")
+    print chatbot.reply("localuser", "Do you remember me?")
     
 
 def observeState():
@@ -253,9 +253,9 @@ def decodeAction(nextAction):
         if actionID[nextAction] != 6:
             ALMemory.insertData("prevAct", actionID[nextAction])
     except KeyError:
-#        pass
+        pass
     #TODO asdf
-        decodeAction("Chat") #Set Chat as the default action if state was messed up and not present in the policy
+        #decodeAction("Chat") #Set Chat as the default action if state was messed up and not present in the policy
     
     flipTurn()
     observeState()
@@ -269,21 +269,22 @@ def flipTurn():
 
 
 def chat(sentence):
-    tts = ALProxy("ALTextToSpeech")
+    print sentence
+    global chatbot
+    tts = ALProxy("ALAnimatedSpeech")
     try:
-        tts.say(chatbot.reply("localuser", sentence))
+        tts.say(str(chatbot.reply("localuser",str(sentence))))
     except RuntimeError:
-        tts.say("What is your name")
-        #pass
+        print "error in chatbot"
 
 
 def greet():
-    tts = ALProxy("ALTextToSpeech")
-    tts.say("Hello")
+    tts = ALProxy("ALAnimatedSpeech")
+    tts.say("Hi")
        
        
 def goodbye():
-    tts = ALProxy("ALTextToSpeech")
+    tts = ALProxy("ALAnimatedSpeech")
     tts.say("Have a nice day")
     
     # TODO: Have to change it to engage other person instead of exit
@@ -302,7 +303,7 @@ def goodbye():
     
 
 def confirm():
-    tts = ALProxy("ALTextToSpeech")
+    tts = ALProxy("ALAnimatedSpeech")
     if lastUsrInput is not None:
         tts.say("Sorry, did you say " + lastUsrInput + "?")
     else:
@@ -310,7 +311,7 @@ def confirm():
        
 def giveDirections():
     print "shopName: ", ALMemory.getData("shopName")
-    tts = ALProxy("ALTextToSpeech")
+    tts = ALProxy("ALAnimatedSpeech")
     tts.say("You are asking for a " + shopList.getShop(ALMemory.getData("shopName")).getCategory() + "shop. " + 
             shopList.getDirections(ALMemory.getData("shopName")))
     ALMemory.insertData("ctxTask","")
@@ -319,7 +320,7 @@ def giveDirections():
     
     
 def taskConsume():
-    tts = ALProxy("ALTextToSpeech") #TODO: ("ALAnimatedSpeech") to make it move at the same time. need to find a way to rest it afterwards
+    tts = ALProxy("ALAnimatedSpeech") #TODO: ("ALAnimatedSpeech") to make it move at the same time. need to find a way to rest it afterwards
     tts.say("Let me see. There are " + str(len( shopList.filteredCategory(ALMemory.getData("ctxTask")) )) +
     " " + ALMemory.getData("ctxTask") + " shops nearby")
     
@@ -331,12 +332,15 @@ def taskConsume():
     ALMemory.insertData("tskCompleted","True")
     
 def requestTask():
-    tts = ALProxy("ALTextToSpeech")
+    tts = ALProxy("ALAnimatedSpeech")
     tts.say("Is there anything I can help you with?")
     
     
 def wait():
     global memory
+    if not tskF:
+        ALMemory.insertData("usrEngChat","True")
+        
     ALMemory.insertData("tskCompleted","False")
     ALMemory.insertData("timeout","False")
     memory.subscribeToEvent("EngagementZones/PersonMovedAway", "EngagementZone", "onMoveAway")
@@ -393,7 +397,7 @@ shopList= ShopList()
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--ip", type=str, default="192.168.1.37",
+parser.add_argument("--ip", type=str, default="192.168.2.5",
                         help="Robot's IP address. If on a robot or a local Naoqi")
 parser.add_argument("--port", type=int, default=9559,
                         help="port number, the default value is OK in most cases")
@@ -422,8 +426,10 @@ ALMemory = session.service("ALMemory")
 ALDialog = session.service("ALDialog")
 ALTracker = session.service("ALTracker")
 ALEngagementZones = session.service("ALEngagementZones")
+ALMotion = session.service("ALMotion")
 
 ALDialog.setLanguage("English")
+ALMotion.setBreathEnabled('Body', True)
 
 
 
@@ -439,10 +445,10 @@ topic_content = ('topic: ~example_topic_content()\n'
                        'u: (* ~coffee) $tskFilled=True $ctxTask=coffee $usrEngChat=False\n'
                        'u: (* ~electronics) $tskFilled=True $ctxTask=electronics $usrEngChat=False\n'
                        'u: (* ~clothing) $tskFilled=True $ctxTask=clothing $usrEngChat=False\n'
-                           'u: (* ~bye) $bye=True $usrEngChat=False\n'
+                       'u: (* ~bye) $bye=True $usrEngChat=False\n'
                        'u: (e:Dialog/NotUnderstood) $usrEngChat=True \n'
-                       #'u: (e:Dialog/LastInput) $Dialog/LastInput=$Dialog/LastInput \n'
-                       'u: (e:Dialog/NotSpeaking5) $timeout=True \n'
+                       'u: (_*) $Dialog/LastInput=$1 \n'
+                       #'u: (e:Dialog/NotSpeaking5) $timeout=True \n'
                        'u: (* _~shop) $tskFilled=True $ctxTask=directions $shopName=$1 $usrEngChat=False \n') 
 
 
@@ -490,5 +496,6 @@ finally:
     ALTracker.stopTracker()
     ALTracker.unregisterAllTargets()
     myBroker.shutdown()
+    ALMotion.setBreathEnabled('Body', False)
     sys.exit(0)
 

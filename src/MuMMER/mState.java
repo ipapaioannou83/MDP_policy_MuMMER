@@ -171,7 +171,8 @@ public class mState implements MutableState{
         mState s = new mState();
         Random random = new Random();
 
-        s.distance = random.nextInt(3);
+//        s.distance = random.nextInt(3);
+        s.distance = 1;
         s.mode = false;
         s.usrEngaged = true;
         s.usrTermination = false;
