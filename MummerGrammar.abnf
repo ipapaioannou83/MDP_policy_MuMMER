@@ -1,0 +1,42 @@
+#ABNF 1.0 UTF-8;
+
+language fi-FI;
+root $root;
+
+public $root = (([$greeting] [$filler]  $productType {out.productType = rules.productType; out.confirm = meta.productType.text} [please]) | ($yes {out.yes=1}) | ($no {out.no=1}) | ($req_info {out.req_info=1}) | ($req_directions {out.req_directions=rules.req_directions}) | ($goodbye {out.goodbye=rules.goodbye}) | ($req_closing {out.req_closing=rules.req_closing}));
+
+$productType = (($coffee {out.type="coffee"}) | ($electronics {out.type="electronics"}) | ($clothing {out.type="clothing"}));
+
+$buy = ((buy) | (get) | (find) | (have) |(drink));
+
+public $req_directions = ([$greeting] (I need [some] directions {out.dest="null"}) | (How can I ((get) | (go)) to $shops {out.dest=rules.shops; out.confirm=meta.shops.text}) | (Where can I find $shops {out.dest=rules.shops; out.confirm=meta.shops.text}) | ([Can you] Show me the way to $shops {out.dest=rules.shops; out.confirm=meta.shops.text}) | (Guide me to $shops {out.dest=rules.shops; out.confirm=meta.shops.text}) | (Where is $shops {out.dest=rules.shops; out.confirm=meta.shops.text}) | (direct me to $shops {out.dest=rules.shops; out.confirm=meta.shops.text}) | ([$shops {out.dest=rules.shops; out.confirm=meta.shops.text}]));
+
+public $req_info = ([$greeting] (I need [some] information) | ($det have some questions) | (I want to ask you something) | (Can I ask you ((a [few] question?) | (something))));
+
+public $coffee = [drink] [cup of] ((Etsin kahvilaa) | (coffee) | (cappuccino) | (latte) | (mocha) | (espresso));
+
+$electronics = (([mobile] phone) | (charger) | (TV) | (television) | (iphone) | (LG) | (Samsung) | (USB stick) | (phone covers) | (laptop) | (cable [for my phone]) | ([personal] computer));
+
+$clothing = ((shoes) | (jacket) | (t-shirt) | (skirt) | (belt) | (jeans) | (trousers) | (socks) | (shirt) | (suit) | (coat) | (underwear) | (lingerie) | (clothing [shop]));
+
+$det = ((I) | (we));
+
+$article = ((a) | (an) | (some));
+
+$greeting = ((Hello) | (Hi) | (Hi there) | (Good $partOfDay)) {out.req_greeting=1};
+
+$partOfDay = ((morning) | (afternoon) | (day) | (night));
+
+$number = ((one {out=1}) | (two {out=2}) | (three {out=3}) | (four {out=4}) | (five {out=5}) | (six {out=6}) | (seven {out=7}) | (eight {out=8}) | (nine {out=9}) | (ten {out=10}));
+
+$yes = ((yes) | (yes I do) | (sure) | (yeah) | (of course) | (okay));
+
+$no = ((no) | (no way) | (nope) | (not really) | (I don't think so));
+
+$filler = ((ahm) | (ah) | (eh) | (ehm) | (mm) | (can you (tell me) | (show me)));
+
+public $shops = ((Starbucks) | (Hardware electronics) | (Costa) | (Tesco) | (Public) | (Primark) | (Phone heaven));
+
+public $goodbye = ([OK] ((Bye) | (Goodbye) | (See you [later]) | (Cheers)));
+
+

@@ -1,0 +1,29 @@
+&id001 {bye: true, ctxTask: '', distance: 2, lowConf: false, mode: false, prevAct: 7, timeout: false, tskCompleted: false, tskFilled: true, turnTaking: true, usrEngChat: false, usrEngaged: false}: 
+  qEntry:
+  - a: &id003 {name: taskConsume}
+    q: 0.0
+    s: *id001
+  - a: &id005 {name: Greet}
+    q: 0.0
+    s: *id001
+  - a: &id006 {name: Goodbye}
+    q: 0.0
+    s: *id001
+  - a: &id007 {name: Chat}
+    q: 0.0
+    s: *id001
+  - a: &id008 {name: giveDirections}
+    q: 0.0
+    s: *id001
+  - a: &id009 {name: requestName}
+    q: 0.0
+    s: *id001
+  - a: &id010 {name: wait}
+    q: 0.0
+    s: *id001
+  - a: &id011 {name: confirm}
+    q: 0.0
+    s: *id001
+  - a: &id012 {name: requestTask}
+    q: 0.0
+    s: *id001
