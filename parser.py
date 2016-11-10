@@ -14,6 +14,7 @@ some_state = None
 memory = None
 chatbot = None
 nextAction = None
+userStopedTalking = False
 global actionName
 global shopList
 
@@ -23,9 +24,9 @@ tskF = False
 prevA = 0
 dist = 1
 ctx = ''
-turn = False
+turn = False #0 = agent, 1 = user
 usrEng = True
-mode = False
+mode = False #0 = task, 1 = chat
 timeout = False
 usrTerm = False
 bye = False
@@ -78,16 +79,14 @@ class SpeechEventModule(ALModule):
         # unsubscribe to stop listening. Will resubscribe during user's turn (TODO: probably will change...)
         global memory
         memory.unsubscribeToEvent("Dialog/LastInput", "SpeechEvent")
-        #ALDialog.unsubscribe('my_dialog_example')
-        flipTurn()
-    
-        observeState()
-#        print "After OS"
-#        decodeAction(nextAction)
-#        print "After DA"
-#        '''if ALMemory.getData("ctxTask") == "directions":
-#            self.tts.say("You are asking for a " + shopList.getShop(ALMemory.getData("shopName")).getCategory() + ". " + 
-#            ALMemory.getData("shopName") + "is this way")'''
+        ALDialog.unsubscribe('my_dialog_example')
+        
+        #flipTurn()
+        
+        global userStopedTalking        
+        userStopedTalking = True
+        
+       # observeState()
 
 class HumanGreeterModule(ALModule):
     """ A simple module able to react
@@ -132,20 +131,20 @@ class EngagementZoneModule(ALModule):
         self.tts = ALProxy("ALAnimatedSpeech")
 
     def onMoveAway(self, *_args):
+        print "moved away"
         global dist
         global memory
         memory.unsubscribeToEvent("EngagementZones/PersonApproached", "EngagementZone")  
-        dist = 2
-#        self.tts.say("come back")
-#        observeState()
+       # dist = 2
+        memory.subscribeToEvent("EngagementZones/PersonApproached", "EngagementZone", "onMoveCloser")
         
     def onMoveCloser(self, *_args):
+        print "moved closer"
         global dist
         global memory
         memory.unsubscribeToEvent("EngagementZones/PersonApproached", "EngagementZone")  
         dist = 1
-#        self.tts.say("welcome back")
-#        observeState()
+        memory.subscribeToEvent("EngagementZones/PersonMovedAway", "EngagementZone", "onMoveAway")
         
 
 # Read memory variables (state attributes)
@@ -209,7 +208,7 @@ def instantiateMemory():
     chatbot.load_directory("/media/elveleg/Data/MuMMER Project/chatbot/eg/brain")
     chatbot.sort_replies()
     
-    print chatbot.reply("localuser", "Do you remember me?")
+    #print chatbot.reply("localuser", "Do you remember me?")
     
 
 def observeState():
@@ -244,16 +243,18 @@ def decodeAction(nextAction):
         elif nextAction == "requestTask":
             requestTask()
         
-        if nextAction == "Chat":
-            ALMemory.insertData("mode","True")
-        else:
-            ALMemory.insertData("mode","False")        
+        if not turn:
+            if nextAction == "Chat":
+                ALMemory.insertData("mode","True")
+            else:
+                ALMemory.insertData("mode","False")        
             
         # Write action taken to state
         if actionID[nextAction] != 6:
             ALMemory.insertData("prevAct", actionID[nextAction])
     except KeyError:
-        pass
+        print "ERROR"
+        sys.exit(0)
     #TODO asdf
         #decodeAction("Chat") #Set Chat as the default action if state was messed up and not present in the policy
     
@@ -338,18 +339,24 @@ def requestTask():
     
 def wait():
     global memory
+    global userStopedTalking
     if not tskF:
         ALMemory.insertData("usrEngChat","True")
         
     ALMemory.insertData("tskCompleted","False")
     ALMemory.insertData("timeout","False")
-    memory.subscribeToEvent("EngagementZones/PersonMovedAway", "EngagementZone", "onMoveAway")
-    memory.subscribeToEvent("EngagementZones/PersonApproached", "EngagementZone", "onMoveCloser")
+#    memory.subscribeToEvent("EngagementZones/PersonMovedAway", "EngagementZone", "onMoveAway")
+#    memory.subscribeToEvent("EngagementZones/PersonApproached", "EngagementZone", "onMoveCloser")
     memory.subscribeToEvent("Dialog/LastInput", "SpeechEvent", "onSpeechDetected")
-    #ALDialog.subscribe('my_dialog_example')
+    ALDialog.subscribe('my_dialog_example')
     while True:
+        if userStopedTalking:
+            print "user stoped talking"
+            userStopedTalking = False
+            break
+        
         if (time.time() > time.time() + 10) or (dist == 2):
-            print "broken"
+            print "timeout/walked away"
             break
 
 def generateState():
@@ -376,15 +383,20 @@ def bool2str(s):
 def getDistance():
     distance = 0
     data = ALMemory.getData("PeoplePerception/PeopleDetected")
-    if data[1][0][1] <= 1:
-        distance = 1
-    if data[1][0][1] > 1 and data[1][0][1] <= 2.5:
-        distance = 1
-    elif data[1][0][1] > 2.5:
-        distance = 2
-        ALMemory.insertData("timeout","False")
-        print "far, far away"
-    
+    print "distance: ", data[1][0][1]
+    try:
+        if data[1][0][1] <= 1:
+            distance = 1
+        if data[1][0][1] > 1 and data[1][0][1] <= 2.5:
+            distance = 1
+        elif data[1][0][1] > 2.5:
+            distance = 2
+            ALMemory.insertData("timeout","False")
+            print "far, far away"
+            
+    except TypeError:
+        distance = 1        
+        
     return distance
     
 #tskC, tskF, prevA, dist, ctx, usrEng, mode, timeout, usrTerm, bye, usrEngC, lowConf, turn'''
@@ -429,7 +441,7 @@ ALEngagementZones = session.service("ALEngagementZones")
 ALMotion = session.service("ALMotion")
 
 ALDialog.setLanguage("English")
-ALMotion.setBreathEnabled('Body', True)
+ALMotion.setBreathEnabled('Arms', True)
 
 
 
