@@ -87,6 +87,7 @@ class SpeechEventModule(ALModule):
         userStopedTalking = True
         
        # observeState()
+        
 
 class HumanGreeterModule(ALModule):
     """ A simple module able to react
@@ -131,12 +132,11 @@ class EngagementZoneModule(ALModule):
         self.tts = ALProxy("ALAnimatedSpeech")
 
     def onMoveAway(self, *_args):
-        print "moved away"
         global dist
         global memory
         memory.unsubscribeToEvent("EngagementZones/PersonApproached", "EngagementZone")  
-       # dist = 2
-        memory.subscribeToEvent("EngagementZones/PersonApproached", "EngagementZone", "onMoveCloser")
+        dist = 2
+#        memory.subscribeToEvent("EngagementZones/PersonApproached", "EngagementZone", "onMoveCloser")
         
     def onMoveCloser(self, *_args):
         print "moved closer"
@@ -144,7 +144,7 @@ class EngagementZoneModule(ALModule):
         global memory
         memory.unsubscribeToEvent("EngagementZones/PersonApproached", "EngagementZone")  
         dist = 1
-        memory.subscribeToEvent("EngagementZones/PersonMovedAway", "EngagementZone", "onMoveAway")
+#        memory.subscribeToEvent("EngagementZones/PersonMovedAway", "EngagementZone", "onMoveAway")
         
 
 # Read memory variables (state attributes)
@@ -205,10 +205,9 @@ def instantiateMemory():
     # Initialize chatbot
     global chatbot
     chatbot = RiveScript()
-    chatbot.load_directory("/media/elveleg/Data/MuMMER Project/chatbot/eg/brain")
+#    chatbot.load_directory("/media/elveleg/Data/MuMMER Project/chatbot/eg/brain")
+    chatbot.load_directory("/home/ip9/IdeaProjects/chatbot/eg/brain")
     chatbot.sort_replies()
-    
-    #print chatbot.reply("localuser", "Do you remember me?")
     
 
 def observeState():
@@ -340,23 +339,32 @@ def requestTask():
 def wait():
     global memory
     global userStopedTalking
-    if not tskF:
-        ALMemory.insertData("usrEngChat","True")
-        
+    global timeout
+    tStart = time.time() # Start time counter for timeout
+    
     ALMemory.insertData("tskCompleted","False")
     ALMemory.insertData("timeout","False")
-#    memory.subscribeToEvent("EngagementZones/PersonMovedAway", "EngagementZone", "onMoveAway")
-#    memory.subscribeToEvent("EngagementZones/PersonApproached", "EngagementZone", "onMoveCloser")
+    memory.subscribeToEvent("EngagementZones/PersonMovedAway", "EngagementZone", "onMoveAway")
+    memory.subscribeToEvent("EngagementZones/PersonApproached", "EngagementZone", "onMoveCloser")
     memory.subscribeToEvent("Dialog/LastInput", "SpeechEvent", "onSpeechDetected")
     ALDialog.subscribe('my_dialog_example')
     while True:
+        time.sleep(1)
         if userStopedTalking:
-            print "user stoped talking"
+#            print "user stoped talking"
             userStopedTalking = False
+            if not tskF:
+                ALMemory.insertData("usrEngChat","True")
+                
             break
         
-        if (time.time() > time.time() + 10) or (dist == 2):
-            print "timeout/walked away"
+        if time.time() > tStart + 10:
+            ALMemory.insertData("timeout","True")
+            print "timeout"
+            break
+        
+        if dist == 2:
+            print "walked away"
             break
 
 def generateState():
@@ -391,8 +399,7 @@ def getDistance():
             distance = 1
         elif data[1][0][1] > 2.5:
             distance = 2
-            ALMemory.insertData("timeout","False")
-            print "far, far away"
+#            ALMemory.insertData("timeout","False")
             
     except TypeError:
         distance = 1        
@@ -409,7 +416,7 @@ shopList= ShopList()
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--ip", type=str, default="192.168.2.5",
+parser.add_argument("--ip", type=str, default="137.195.108.20",
                         help="Robot's IP address. If on a robot or a local Naoqi")
 parser.add_argument("--port", type=int, default=9559,
                         help="port number, the default value is OK in most cases")
@@ -438,6 +445,8 @@ ALMemory = session.service("ALMemory")
 ALDialog = session.service("ALDialog")
 ALTracker = session.service("ALTracker")
 ALEngagementZones = session.service("ALEngagementZones")
+ALEngagementZones.setSecondLimitDistance(3.5)
+ALEngagementZones.setFirstLimitDistance(2.5)
 ALMotion = session.service("ALMotion")
 
 ALDialog.setLanguage("English")

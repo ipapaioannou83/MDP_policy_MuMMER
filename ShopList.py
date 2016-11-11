@@ -12,7 +12,7 @@ class ShopList(list):
     
     def __init__(self, empty = False):   
         if empty == False:
-            data = np.recfromcsv("/media/elveleg/Data/MuMMER Project/MuMMER_MDP/shop_list.txt", delimiter=';')
+            data = np.recfromcsv("shop_list.txt", delimiter=';')
             #data = np.recfromcsv("D:\MuMMER Project\MuMMER_MDP\shop_list.txt", delimiter=';')
     
             for s in data:
