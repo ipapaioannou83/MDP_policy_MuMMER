@@ -23,7 +23,6 @@ class SpeechEventModule(ALModule):
         self.tts = ALProxy("ALTextToSpeech")
 
         # Subscribe to the FaceDetected event:
-        global memory
         memory = ALProxy("ALMemory")
         memory.subscribeToEvent("SpeechDetected",
             "SpeechEvent",
@@ -36,6 +35,7 @@ class SpeechEventModule(ALModule):
         """
         # Unsubscribe to the event when talking,
         # to avoid repetitions
+        memory = ALProxy("ALMemory")
         memory.unsubscribeToEvent("SpeechDetected",
             "SpeechEvent")
 
@@ -43,6 +43,7 @@ class SpeechEventModule(ALModule):
         
 
         # Subscribe again to the event
+        memory = ALProxy("ALMemory")
         memory.subscribeToEvent("SpeechDetected",
             "SpeechEvent",
             "onSpeechDetected")

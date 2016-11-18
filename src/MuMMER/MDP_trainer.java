@@ -10,11 +10,13 @@ import burlap.behavior.singleagent.learning.LearningAgentFactory;
 import burlap.behavior.singleagent.learning.tdmethods.QLearning;
 import burlap.behavior.singleagent.learning.tdmethods.QLearningStateNode;
 import burlap.behavior.singleagent.learning.tdmethods.SarsaLam;
+import burlap.mdp.auxiliary.StateGenerator;
 import burlap.mdp.core.Domain;
 import burlap.mdp.core.action.Action;
 import burlap.mdp.core.state.State;
 import burlap.mdp.singleagent.SADomain;
 import burlap.mdp.singleagent.environment.SimulatedEnvironment;
+import burlap.mdp.singleagent.pomdp.PODomain;
 import burlap.statehashing.HashableState;
 import burlap.statehashing.simple.SimpleHashableStateFactory;
 import com.google.gson.Gson;
@@ -40,6 +42,7 @@ public class MDP_trainer {
     public static final double epsilon = 0.99;
     private EpsilonGreedy learnedPolicy = new EpsilonGreedy(epsilon);
     private SADomain domain;
+    private PODomain podomain;
     private List<Episode> episodes;
     private static final int learning_iterations = 120000;
 
@@ -69,6 +72,8 @@ public class MDP_trainer {
             }
         };
 
+
+
         la.setLearningPolicy(learnedPolicy);
         learnedPolicy.setSolver(la);
 
@@ -86,9 +91,9 @@ public class MDP_trainer {
 
 
         //Export policy to file
-        la.writeQTable("jsonDump_temp.json");
+        //la.writeQTable("jsonDump_temp.json");
 
-        //generatePlots(domain, env);
+        generatePlots(domain, env);
 
         List<State> ls = bestEpisode().stateSequence;
         List<Action> lac = bestEpisode().actionSequence;
