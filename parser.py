@@ -409,7 +409,7 @@ shopList= ShopList()
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--ip", type=str, default="192.168.2.5",
+parser.add_argument("--ip", type=str, default="192.168.1.37",
                         help="Robot's IP address. If on a robot or a local Naoqi")
 parser.add_argument("--port", type=int, default=9559,
                         help="port number, the default value is OK in most cases")
