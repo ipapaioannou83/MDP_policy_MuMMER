@@ -44,7 +44,8 @@ public class mDomain implements DomainGenerator, iAttributes, iActions{
                 new PepperAction(GIVEDIR),
                 new PepperAction(WAIT),
                 new PepperAction(CONFIRM),
-                new PepperAction(REQTASK));
+                new PepperAction(REQTASK),
+                new PepperAction(REQSHOP));
 
 
         WorldStateModel model = new WorldStateModel();
@@ -56,7 +57,7 @@ public class mDomain implements DomainGenerator, iAttributes, iActions{
     }
 
     protected class WorldStateModel implements SampleStateModel{
-        //1 = taskConsume, 2 = greet, 3 = goodbye, 4 = chat, 5 = giveDirections, 6 = wait, 7 = confirm, 8 = reg_task
+        //1 = taskConsume, 2 = greet, 3 = goodbye, 4 = chat, 5 = giveDirections, 6 = wait, 7 = confirm, 8 = req_task, 9 = req_shop
         public WorldStateModel(){
         }
 
@@ -79,6 +80,8 @@ public class mDomain implements DomainGenerator, iAttributes, iActions{
                 case CONFIRM:   id = 7;
                     break;
                 case REQTASK:   id = 8;
+                    break;
+                case REQSHOP:   id = 9;
                     break;
                 default:    id = -1;
                     break;
@@ -124,13 +127,13 @@ public class mDomain implements DomainGenerator, iAttributes, iActions{
                 if (actionID == 1){
 
                     //If took the tskConsume without having a task -> punish
-                    if(!s.tskFilled || s.ctxTask.equals("directions")){
+                    if(!s.tskFilled || s.ctxTask.equals("directions") || s.ctxTask.equals("voucher")){
                         s.usrTermination = true;
                         s.usrEngaged = false;
                     }
 
                     //If agent is confident on the task given, set task completed and flip the attributes
-                    if(!s.lowConf && s.tskFilled){
+                    if(!s.lowConf && s.tskFilled ){
                         s.tskCompleted = true;
                         s.tskFilled = false;
                         s.ctxTask = "";
@@ -159,12 +162,44 @@ public class mDomain implements DomainGenerator, iAttributes, iActions{
                     }
                 }
 
+                if (actionID == 9){
+
+                    //If took the tskConsume without having a task -> punish
+                    if(!s.ctxTask.equals("voucher")){
+                        s.usrTermination = true;
+                        s.usrEngaged = false;
+                    }
+
+                    //If agent is confident on the task given, set task completed and flip the attributes
+                    if(!s.lowConf && s.ctxTask.equals("voucher")){
+                        s.tskCompleted = true;
+                        s.tskFilled = false;
+                        s.ctxTask = "";
+                    } else {
+                        s.usrTermination = true;
+                        s.usrEngaged = false;
+                    }
+                }
 //                //If agents does not consume task while task slot is filled (and there is a high confidence score), punish
 //                if ((actionID != 1 && s.tskFilled) || (actionID != 5 && s.tskFilled)){
 //                    if (!s.lowConf){
 //                        s.usrTermination = true;
 //                        s.usrEngaged = false;
 //                    }
+//                }
+
+//                if (actionID == 9 && s.ctxTask.equals("voucher")){
+//                    s.tskCompleted = true;
+//                }
+//
+//                if (s.ctxTask.equals("voucher") && actionID != 9){
+//                    s.usrEngaged = false;
+//                    s.usrTermination = true;
+//                }
+//
+//                if (!s.ctxTask.equals("voucher") && actionID == 9){
+//                    s.usrEngaged = false;
+//                    s.usrTermination = true;
 //                }
 
                 if (s.tskFilled && actionID != 1){
@@ -276,7 +311,7 @@ public class mDomain implements DomainGenerator, iAttributes, iActions{
         private String[] userTask (mState s){
             String[] result = new String[2];
             String[] task = {"uReq_Task", "uReq_Dir", "uGoodbye", "uSilent", "uWalkAway", "uChat"};
-            String[] ctx = {"", "coffee", "electronics", "clothing"};
+            String[] ctx = {"", "coffee", "electronics", "clothing", "voucher", "voucherANDshop", "selfie"};
             int index, iCtx;
 
             index = randInt(0, task.length - 1);
@@ -297,11 +332,16 @@ public class mDomain implements DomainGenerator, iAttributes, iActions{
 //                    return result;
 //                }
 
+            if (s.prevAct == 9){
+                result[0] = "uReq_Task";
+                result[1] = "voucherANDshop";
+
+                return result;
+            }
 
             //If last agent's action was to request for task, user have 80% to provide a random TASK or DIRECTIONS.
             if (s.prevAct == 8){
-                double r = Math.random();
-                if (r < .6){
+                if (Math.random() < .6){
                     result[0] = task[randInt(0, 1)];
                     if (result[0].equals("uReq_Task"))
                         result[1] = ctx[randInt(0, ctx.length - 1)];
@@ -310,22 +350,21 @@ public class mDomain implements DomainGenerator, iAttributes, iActions{
 
                     return result;
                 } else {
-                    index = randInt(0, task.length - 2); // select from all actions except uChat
+                    index = randInt(2, task.length - 1); // select from all actions except uChat
                 }
             }
 
             /* If agent already in chat mode, user have 50% probability to continue the chat
             and 50% to take some other action */
             if (s.usrEngChat) {
-                double r = Math.random();
-                    if (r < .5){
-                        result[0] = task[task.length - 1];
-                        result[1] = "";
+                if (Math.random() < .5){
+                    result[0] = task[task.length - 1];
+                    result[1] = "";
 
-                        return result;
-                    } else {
-                        index = randInt(0, task.length - 1);
-                    }
+                    return result;
+                } else {
+                    index = randInt(0, task.length - 1);
+                }
 
             }
 
@@ -359,9 +398,8 @@ public class mDomain implements DomainGenerator, iAttributes, iActions{
 
         // nextInt is normally exclusive of the top value,
         // so add 1 to make it inclusive
-        int randomNum = rand.nextInt((max - min) + 1) + min;
 
-        return randomNum;
+        return rand.nextInt((max - min) + 1) + min;
     }
 
 

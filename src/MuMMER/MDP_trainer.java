@@ -91,9 +91,9 @@ public class MDP_trainer {
 
 
         //Export policy to file
-        //la.writeQTable("jsonDump_temp.json");
+        la.writeQTable("jsonDump_temp.json");
 
-        generatePlots(domain, env);
+        //generatePlots(domain, env);
 
         List<State> ls = bestEpisode().stateSequence;
         List<Action> lac = bestEpisode().actionSequence;
@@ -179,13 +179,23 @@ public class MDP_trainer {
     public Episode bestEpisode(){
         Episode ep = new Episode();
         double maxR = 0;
-
+        List<Action> aList;
+        Boolean found = false;
         for (Episode e : episodes){
-            //learnedPolicy.action();
-            if (e.discountedReturn(discount) > maxR){
-                maxR = e.discountedReturn(discount);
-                ep = e;
+            aList = e.actionSequence;
+            for (Action act: aList){
+                if (act.actionName().equals("requestShop")){
+                    if (e.discountedReturn(discount) > maxR){
+                        maxR = e.discountedReturn(discount);
+                        ep = e;
+                    }
+                }
             }
+//            learnedPolicy.action();
+//            if (e.discountedReturn(discount) > maxR){
+//                maxR = e.discountedReturn(discount);
+//                ep = e;
+//            }
         }
 
         return ep;

@@ -48,7 +48,7 @@ public class PepperAction implements ActionType, iActions, iAttributes{
             return Arrays.asList(new Action[]{});
         if (this.typeName.equals(REQTASK) && !s.timeout)
             return Arrays.asList(new Action[]{});
-        if (this.typeName.equals(TASKCONSUME) && s.ctxTask.equals("directions"))
+        if (this.typeName.equals(TASKCONSUME) && (s.ctxTask.equals("directions") || s.ctxTask.equals("voucher")))
             return Arrays.asList(new Action[]{});
 
         return this.allActions;

@@ -10,4 +10,7 @@ public interface iActions {
     String WAIT = "wait";
     String CONFIRM = "confirm";
     String REQTASK = "requestTask";
+    String REQSHOP = "requestShop";
+    String VOUCHERS = "vouchers";
+    String SELFIE = "selfie";
 }
